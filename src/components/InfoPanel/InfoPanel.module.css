@@ -1,0 +1,128 @@
+/* src/components/InfoPanel/InfoPanel.module.css */
+.infoPanel {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 380px;
+  max-height: 90vh;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transform: translateX(-120%);
+  transition: transform 0.5s ease;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  color: white;
+}
+
+.active {
+  transform: translateX(0);
+}
+
+.header {
+  padding: 15px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.5);
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.content {
+  padding: 20px;
+  overflow-y: auto;
+  max-height: calc(90vh - 60px); /* Adjust based on header height */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+/* Scrollbar Styles */
+.content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.content::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+/* Content Styles */
+.content h2 {
+  color: #64ffda;
+  margin-bottom: 1rem;
+}
+
+.content h3 {
+  color: #bb86fc;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.content p {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.content ul {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+/* Close Button */
+.closeButton {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.3s ease;
+}
+
+.closeButton:hover {
+  color: white;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .infoPanel {
+    width: 90%;
+    max-width: 340px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 576px) {
+  .infoPanel {
+    width: 100%;
+    max-width: none;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: translateY(100%);
+    border-radius: 12px 12px 0 0;
+    max-height: 80vh;
+  }
+
+  .active {
+    transform: translateY(0);
+  }
+
+  .content {
+    max-height: calc(80vh - 60px);
+  }
+}

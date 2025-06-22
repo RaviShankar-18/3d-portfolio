@@ -24,18 +24,29 @@ export const useThreeScene = (currentSection, onSectionChange) => {
   };
 
   const createCubes = useCallback(() => {
+    // Clear existing cubes
+    cubesRef.current.forEach((cube) => {
+      if (sceneRef.current) {
+        sceneRef.current.remove(cube);
+      }
+    });
+    cubesRef.current = [];
+
     const sections = Object.keys(sectionColors);
-    const radius = 6;
+    const isMobile = window.innerWidth < 768;
+    const radius = isMobile ? 4 : 6;
 
     sections.forEach((section, index) => {
       const angle = (index / sections.length) * Math.PI * 2;
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
-      const y = Math.sin(angle * 2) * 2;
+      const y = Math.sin(angle * 2) * (isMobile ? 1.5 : 2);
 
       const cube = createCube(x, y, z, section);
       cubesRef.current.push(cube);
-      sceneRef.current.add(cube);
+      if (sceneRef.current) {
+        sceneRef.current.add(cube);
+      }
     });
   }, []);
 
@@ -93,33 +104,79 @@ export const useThreeScene = (currentSection, onSectionChange) => {
   }, []);
 
   const createParticles = useCallback(() => {
-    const particleCount = 200;
+    const isMobile = window.innerWidth < 768;
+    const particleCount = isMobile ? 100 : 200; // Reduce particles on mobile for performance
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
 
     for (let i = 0; i < particleCount * 3; i++) {
-      positions[i] = (Math.random() - 0.5) * 100;
+      positions[i] = (Math.random() - 0.5) * (isMobile ? 60 : 100);
     }
 
     geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     const material = new THREE.PointsMaterial({
       color: 0x00d4aa,
-      size: 0.1,
+      size: isMobile ? 0.15 : 0.1, // Slightly larger particles on mobile
       transparent: true,
       opacity: 0.6,
     });
 
     const particles = new THREE.Points(geometry, material);
-    sceneRef.current.add(particles);
+    if (sceneRef.current) {
+      sceneRef.current.add(particles);
+    }
+  }, []);
+
+  const updateCameraForScreen = useCallback(() => {
+    if (!cameraRef.current) return;
+
+    const isMobile = window.innerWidth < 768;
+    const aspect = window.innerWidth / window.innerHeight;
+
+    cameraRef.current.aspect = aspect;
+
+    // Adjust camera position based on screen size
+    if (isMobile) {
+      cameraRef.current.position.set(0, 0, 15); // Move camera further back on mobile
+
+      // Adjust cube positions for mobile
+      cubesRef.current.forEach((cube, index) => {
+        const sections = Object.keys(sectionColors);
+        const angle = (index / sections.length) * Math.PI * 2;
+        const radius = 4; // Smaller radius for mobile
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        const y = Math.sin(angle * 2) * 1.5; // Reduced vertical spread
+
+        cube.position.set(x, y, z);
+        cube.userData.originalPosition = { x, y, z };
+      });
+    } else {
+      cameraRef.current.position.set(0, 0, 10);
+
+      // Restore desktop positions
+      cubesRef.current.forEach((cube, index) => {
+        const sections = Object.keys(sectionColors);
+        const angle = (index / sections.length) * Math.PI * 2;
+        const radius = 6;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        const y = Math.sin(angle * 2) * 2;
+
+        cube.position.set(x, y, z);
+        cube.userData.originalPosition = { x, y, z };
+      });
+    }
+
+    cameraRef.current.updateProjectionMatrix();
   }, []);
 
   const handleResize = useCallback(() => {
     if (cameraRef.current && rendererRef.current) {
-      cameraRef.current.aspect = window.innerWidth / window.innerHeight;
-      cameraRef.current.updateProjectionMatrix();
+      updateCameraForScreen();
       rendererRef.current.setSize(window.innerWidth, window.innerHeight);
     }
-  }, []);
+  }, [updateCameraForScreen]);
 
   const animate = useCallback(() => {
     if (!sceneRef.current || !cameraRef.current || !rendererRef.current) return;
@@ -146,6 +203,9 @@ export const useThreeScene = (currentSection, onSectionChange) => {
   const updateCursorStyle = useCallback((event) => {
     if (!cameraRef.current) return;
 
+    // Skip cursor updates on touch devices
+    if ("ontouchstart" in window) return;
+
     const mouse = new THREE.Vector2(
       (event.clientX / window.innerWidth) * 2 - 1,
       -(event.clientY / window.innerHeight) * 2 + 1
@@ -160,27 +220,44 @@ export const useThreeScene = (currentSection, onSectionChange) => {
 
   const initScene = useCallback(
     (canvas) => {
+      // Clean up existing scene
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+
       // Scene setup
       sceneRef.current = new THREE.Scene();
       sceneRef.current.fog = new THREE.Fog(0x1a1a2e, 10, 50);
 
-      // Camera
+      // Camera with mobile consideration
+      const isMobile = window.innerWidth < 768;
       cameraRef.current = new THREE.PerspectiveCamera(
         75,
         window.innerWidth / window.innerHeight,
         0.1,
         1000
       );
-      cameraRef.current.position.set(0, 0, 10);
 
-      // Renderer
+      // Set initial camera position
+      if (isMobile) {
+        cameraRef.current.position.set(0, 0, 15);
+      } else {
+        cameraRef.current.position.set(0, 0, 10);
+      }
+
+      // Renderer with mobile optimizations
       rendererRef.current = new THREE.WebGLRenderer({
         canvas,
-        antialias: true,
+        antialias: !isMobile, // Disable antialiasing on mobile for performance
         alpha: true,
+        powerPreference: isMobile ? "low-power" : "high-performance",
       });
       rendererRef.current.setSize(window.innerWidth, window.innerHeight);
       rendererRef.current.setClearColor(0x000000, 0);
+
+      // Adjust pixel ratio for mobile
+      const pixelRatio = Math.min(window.devicePixelRatio, isMobile ? 2 : 3);
+      rendererRef.current.setPixelRatio(pixelRatio);
 
       // Lights
       const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
@@ -192,28 +269,56 @@ export const useThreeScene = (currentSection, onSectionChange) => {
       createCubes();
       createParticles();
 
+      // Initial camera setup
+      updateCameraForScreen();
+
       // Add event listeners
       window.addEventListener("resize", handleResize);
       window.addEventListener("mousemove", handleCubeHover);
       window.addEventListener("click", handleCubeClick);
       window.addEventListener("mousemove", updateCursorStyle);
 
+      // Add touch events for mobile
+      if ("ontouchstart" in window) {
+        canvas.addEventListener("touchstart", handleCubeClick, {
+          passive: false,
+        });
+        canvas.addEventListener("touchmove", (e) => e.preventDefault(), {
+          passive: false,
+        });
+      }
+
       return () => {
         window.removeEventListener("resize", handleResize);
         window.removeEventListener("mousemove", handleCubeHover);
         window.removeEventListener("click", handleCubeClick);
         window.removeEventListener("mousemove", updateCursorStyle);
+
+        if ("ontouchstart" in window && canvas) {
+          canvas.removeEventListener("touchstart", handleCubeClick);
+          canvas.removeEventListener("touchmove", (e) => e.preventDefault());
+        }
+
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current);
+        }
+
+        // Clean up Three.js objects
+        if (rendererRef.current) {
+          rendererRef.current.dispose();
+        }
+        if (sceneRef.current) {
+          sceneRef.current.clear();
         }
       };
     },
     [
-      handleCubeHover,
-      handleCubeClick,
       createCubes,
       createParticles,
+      updateCameraForScreen,
       handleResize,
+      handleCubeHover,
+      handleCubeClick,
       updateCursorStyle,
     ]
   );

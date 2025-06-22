@@ -20,30 +20,68 @@
   pointer-events: auto;
 }
 
+/* Tablet responsiveness */
 @media (max-width: 768px) {
+  .uiLayer {
+    display: flex;
+    flex-direction: column;
+  }
+
   .infoPanel {
     width: 90%;
     max-width: 320px;
   }
+
+  /* Enhanced navigation for tablet */
+  .navigation {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+  }
+
+  /* Enhanced controls for tablet */
+  .controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    padding: 10px;
+    margin: 0;
+    border-radius: 0;
+  }
 }
 
+/* Mobile phone responsiveness */
 @media (max-width: 576px) {
   .navigation {
     width: 100%;
     top: 0;
     right: 0;
+    left: 0;
     padding: 10px;
     background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    z-index: 1000;
   }
 
   .infoPanel {
     width: 100%;
     max-width: none;
+    max-height: 70vh;
     height: 80vh;
     bottom: 0;
     top: auto;
     left: 0;
+    right: 0;
     transform: translateY(100%);
+    border-radius: 20px 20px 0 0;
   }
 
   .infoPanel.active {
@@ -54,6 +92,26 @@
     width: 100%;
     bottom: 0;
     right: 0;
+    left: 0;
     border-radius: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 10px;
+    margin: 0;
+  }
+}
+
+/* Touch-specific styles for better mobile interaction */
+@media (hover: none) and (pointer: coarse) {
+  .controls {
+    font-size: 14px;
+    padding: 15px;
+  }
+  
+  /* Ensure touch targets are large enough */
+  .controls button,
+  .navigation button {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
